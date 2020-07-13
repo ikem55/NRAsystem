@@ -1,0 +1,6 @@
+lab_notebook/
+test/
+venv/
+.idea/
+__pycache__/
+my_config.py
