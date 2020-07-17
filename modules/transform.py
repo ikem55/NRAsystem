@@ -21,7 +21,7 @@ class Transform(object):
         self.end_date = end_date
 
 
-    def choose_race_result_column(self, race_df):
+    def del_choose_race_result_column(self, race_df):
         """ レースデータから必要な列に絞り込む。列はデータ区分、主催者コード、競走コード、月日、距離、場コード、頭数、予想勝ち指数、予想決着指数, 競走種別コード
 
         :param dataframe race_df:
@@ -218,15 +218,16 @@ class Transform(object):
         return race_df
 
     def choose_race_result_df_columns(self, race_df):
-        race_df = race_df[['データ作成年月日', '競走コード', '距離', 'トラック種別コード', '主催者コード', '競走番号', '場コード', '場名',
-       '競走種別コード', '競走条件コード', 'トラックコード', '頭数',
+        race_df = race_df[['データ作成年月日', '競走コード', '距離', '主催者コード', '競走番号', '場コード', '場名','頭数',
+       '競走種別コード', '競走条件コード', 'トラックコード', 'トラック種別コード',
        '天候コード', '前３ハロン', '前４ハロン', '後３ハロン', '後４ハロン', '馬場状態コード', '前半タイム',
        'ペース', '初出走頭数', '混合', '人気馬支持率1',
        '人気馬支持率2', '人気馬支持率3',
        '予想決着指数', '波乱度', 'タイム指数誤差',
        '月', 'ナイター', '季節', '非根幹',
        '距離グループ', '頭数グループ', 'コース', 'cos_day', 'sin_day', '上り係数']].copy()
-        race_df = race_df.astype({'トラック種別コード': int, '主催者コード': int, '場コード': int, '競走種別コード': int, 'トラックコード': int,
+        race_df = race_df.astype({'主催者コード': int, '場コード': int,
+                                  '競走種別コード': int, 'トラックコード': int, 'トラック種別コード': int,
                                   '天候コード': int, '馬場状態コード': int, '混合': int, 'コース': int, '波乱度': int})
         return race_df
 
@@ -253,7 +254,8 @@ class Transform(object):
 
     ####### 過去走用に不要な列を削除
     def drop_race_result_df_columns(self, race_result_df):
-        race_result_df = race_result_df.drop(["データ作成年月日", "競走番号", "場名"], axis=1)
+        race_result_df = race_result_df.drop(["データ作成年月日", "競走番号", "場名", '競走種別コード', '競走条件コード', 'トラックコード', 'トラック種別コード',
+                                              '天候コード', '前３ハロン', '前４ハロン', '後３ハロン', '後４ハロン', '馬場状態コード', '前半タイム'], axis=1)
         return race_result_df
 
     ##################### raceuma_result_df ###############################
@@ -306,18 +308,19 @@ class Transform(object):
         raceuma_df.loc[:, "凡走"] = raceuma_df.apply(lambda x: 1 if x["確定着順"] - x["単勝人気"] > 5 else 0, axis=1)
         raceuma_df.loc[:, "好走"] = raceuma_df["確定着順"].apply(lambda x: 1 if x <= 3 else 0)
         raceuma_df.loc[:, "激走"] = raceuma_df.apply(lambda x: 1 if x["単勝人気"] - x["確定着順"] > 5 else 0, axis=1)
-        raceuma_df.loc[:, "逃げそびれ"] = raceuma_df.apply(lambda x: 1 if x["予想展開"] == 1 and - x["コーナー順位4"] > 3 else 0, axis=1)
+        raceuma_df.loc[:, "逃げそびれ"] = raceuma_df.apply(lambda x: 1 if x["予想展開"] == "1" and - x["コーナー順位4"] > 3 else 0, axis=1)
         return raceuma_df
 
     def choose_raceuma_result_df_columns(self, raceuma_df):
         raceuma_df = raceuma_df[['競走コード', '馬番', '枠番', '血統登録番号', 'タイム', '年月日',
                                  '着差',
                                  '休養週数', '休養後出走回数', '単勝配当', '複勝配当', '単勝オッズ', '単勝人気', '単勝支持率', '複勝オッズ1', '複勝オッズ2',
-                                 '予想オッズ', '予想人気', '投票直前単勝オッズ', '投票直前複勝オッズ',
+                                 '予想オッズ', '予想人気',
+                                 '投票直前単勝オッズ', '投票直前複勝オッズ','上がりタイム',
                                  '先行率', 'ペース偏差値', 'クラス変動', '騎手コード', '騎手所属場コード',
                                  '見習区分', '騎手名', 'テン乗り', '馬齢', '調教師所属場コード',
                                  '調教師名', '馬体重', '馬体重増減', '異常区分コード', '確定着順', 'コーナー順位1', 'コーナー順位2', 'コーナー順位3', 'コーナー順位4',
-                                 '上がりタイム', '距離増減', '所属', '転厩', '斤量比', '前走休養週数', '騎手ランキング', '調教師ランキング', '馬単合成オッズ',
+                                 '距離増減', '所属', '転厩', '斤量比', '前走休養週数', '騎手ランキング', '調教師ランキング', '馬単合成オッズ',
                                  '展開脚質', '展開脚色', '負担重量', '予想タイム指数', 'デフォルト得点', '得点V1',
                                  '得点V2', '得点V3', 'タイム指数', '上がり偏差', '上がり順位', '馬番グループ', '勝ち', '１番人気', '３角先頭', '４角先頭', '上がり最速',
                                  '休み明け', '連闘', '大差負け', '凡走', '好走', '激走', '逃げそびれ']].copy()
@@ -346,7 +349,7 @@ class Transform(object):
 
     ######## 過去走用に不要な列を削除
     def drop_raceuma_result_df_columns(self, raceuma_result_df):
-        raceuma_result_df = raceuma_result_df.drop(["単勝配当", "複勝配当", "予想オッズ", "予想人気", "投票直前単勝オッズ", "投票直前複勝オッズ",
+        raceuma_result_df = raceuma_result_df.drop(["単勝配当", "複勝配当", "予想オッズ", "予想人気", "投票直前単勝オッズ", "投票直前複勝オッズ", "上がりタイム",
                                                     "騎手名", "調教師名", "所属", "転厩", "異常区分コード"], axis=1)
         return raceuma_result_df
 

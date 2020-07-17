@@ -4,3 +4,6 @@ venv/
 .idea/
 __pycache__/
 my_config.py
+NRAsystem.srctrlbm
+NRAsystem.srctrldb
+NRAsystem.srctrlprj

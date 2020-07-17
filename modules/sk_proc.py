@@ -53,9 +53,9 @@ class SkProc(object):
 
     def _set_index_list(self, model_name):
         if model_name == "race":
-            self.index_list = ["RACE_KEY"]
+            self.index_list = ["RACE_KEY", "NENGAPPI"]
         elif model_name == "raceuma":
-            self.index_list = ["RACE_KEY", "UMABAN"]
+            self.index_list = ["RACE_KEY", "UMABAN", "NENGAPPI"]
 
     def _set_obj_column_list(self, version_str):
         if version_str == "win":
@@ -85,7 +85,7 @@ class SkProc(object):
     def set_learning_df(self):
         base_df = self._get_base_df()
         result_df = self._get_result_df()
-        self.learning_df = pd.merge(base_df, result_df, on =self.index_list)
+        self.learning_df = pd.merge(base_df, result_df, on = self.index_list)
         self.categ_columns = self.skmodel.categ_columns
         self.target_enc_columns = self.skmodel.target_enc_columns
 
@@ -188,9 +188,9 @@ class SkProc(object):
         :param dataframe y_df: dataframe
         :return: dataframe
         """
-        target_encoding_columns = list(set(self.label_list) & set(self.target_enc_columns))
+        target_encoding_columns = list(set(x_df.columns.tolist()) & set(self.target_enc_columns))
         for label in target_encoding_columns:
-            x_df.loc[:, label] = self._target_encoding(x_df[label], label, self.target_flag + '_tr_' + label, fit, y_df)
+            x_df.loc[:, "tr_" + label] = self._target_encoding(x_df[label], label, self.target_flag + '_tr_' + label, fit, y_df)
         return x_df
 
     def _target_encoding(self, sr, label, dict_name, fit, y):
@@ -220,16 +220,16 @@ class SkProc(object):
         :param dataframe df: dataframe
         :param str basho: str
         """
-        if not df.dropna().empty:
-            if len(df.index) >= 30:
-                print("proc_learning_sk_model: df", df.shape)
-                for target in self.obj_column_list:
-                    print(target)
-                    self._learning_sk_model(df, target)
-            else:
-                print("---- 少数レコードのため学習スキップ -- " + str(len(df.index)))
+#        if not df.dropna().empty:
+        if len(df.index) >= 30:
+            print("proc_learning_sk_model: df", df.shape)
+            for target in self.obj_column_list:
+                print(target)
+                self._learning_sk_model(df, target)
         else:
-            print("---- NaNデータが含まれているため学習をスキップ")
+            print("---- 少数レコードのため学習スキップ -- " + str(len(df.index)))
+#        else:
+#            print("---- NaNデータが含まれているため学習をスキップ")
 
 
     def _learning_sk_model(self, df, target):
@@ -318,7 +318,6 @@ class SkProc(object):
         imp_df = pd.DataFrame()
         imp_df["feature"] = X_eval.columns
         imp_df["importance"] = model.feature_importance()
-        print(imp_df)
         imp_df = imp_df.sort_values("importance")
 
         # 比較用のランダム化したモデルを学習する
@@ -349,9 +348,7 @@ class SkProc(object):
             percentage = (null_value < actual_value).sum() / null_value.size * 100
             if percentage >= threshold:
                 imp_features.append(feature)
-
         print(len(imp_features))
-        print(imp_features)
 
         self._save_learning_model(imp_features, this_model_name + "_feat_columns")
         return imp_features
@@ -389,7 +386,7 @@ class SkProc(object):
 
 
 
-    def set_smote_data(self):
+    def del_set_smote_data(self):
         """ 学習データのSMOTE処理を行い学習データを更新する  """
         # 対象数が少ない場合はサンプリングレートを下げる
         positive_count_train = self.y_train.sum()
@@ -464,9 +461,7 @@ class SkProc(object):
         return all_pred_df
 
     def _sub_create_pred_df(self, temp_df, y_pred):
-        this_index_list = self.index_list.copy()
-        this_index_list.append("NENGAPPI")
-        pred_df = temp_df[this_index_list].copy()
+        pred_df = temp_df[self.index_list].copy()
         pred_df.loc[:, "prob"] = y_pred
         pred_df.loc[:, "pred"] = pred_df.apply(lambda x: 1 if x["prob"] >= 0.5 else 0, axis=1)
         return pred_df
@@ -498,9 +493,10 @@ class SkProc(object):
 
     def eval_pred_data(self, df):
         """ 予測されたデータの精度をチェック """
+        this_index_list = self.index_list
+        this_index_list.remove("NENGAPPI")
         result_df = self._get_result_df()
-        print(result_df.head())
-        check_df = pd.merge(df, result_df, on=self.index_list)
+        check_df = pd.merge(df, result_df, on=this_index_list)
         all_analyze_df = pd.DataFrame()
         for target in self.obj_column_list:
             print(target)

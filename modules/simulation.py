@@ -12,14 +12,12 @@ class Simulation(object):
     馬券シミュレーションに関する処理をまとめたクラス
     """
 
-    def __init__(self, start_date, end_date, mock_flag):
+    def __init__(self, start_date, end_date, mock_flag, raceuma_df):
         self.start_date = start_date
         self.end_date = end_date
         self.mock_flag = mock_flag
         self.ext = self._get_extract_object(start_date, end_date, mock_flag)
-
-    def set_raceuma_df(self, raceuma_df):
-        self.raceuma_df = raceuma_df
+        self.raceuma_df = raceuma_df.rename(columns={"RACE_KEY": "競走コード", "UMABAN": "馬番"})
 
     def _get_extract_object(self, start_date, end_date, mock_flag):
         """ 利用するExtクラスを指定する """
@@ -64,7 +62,7 @@ class Simulation(object):
                 for element in itertools.permutations(range(1, tosu), 2):
                     odds_array[element[0], element[1]] = odds_list[idx]
                     idx = idx + 1
-            df["odds"][index] = odds_array
+            df["odds"][index] = odds_array.copy()
         return df
 
     def _add_odds_panel(self, df, n, combi=True):
@@ -148,8 +146,8 @@ class Simulation(object):
                     uma2_list += [element[1]]
                     odds_list += [odds]
         kaime_df = pd.DataFrame(
-            data={"競走コード": race_key_list, "馬番": umaban_list, "オッズ": odds_list, "馬番1": uma1_list, "馬番2": uma2_list},
-            columns=["競走コード","馬番","オッズ", "馬番1", "馬番2"]
+            data={"競走コード": race_key_list, "馬番": umaban_list,  "チェック馬番": check_umaban_list, "オッズ": odds_list, "馬番1": uma1_list, "馬番2": uma2_list},
+            columns=["競走コード","馬番","チェック馬番", "オッズ", "馬番1", "馬番2"]
         )
         kaime_df = kaime_df[kaime_df["オッズ"] != 0]
         kaime_df = kaime_df.drop_duplicates(subset=["競走コード", "チェック馬番"]).drop("チェック馬番", axis=1)

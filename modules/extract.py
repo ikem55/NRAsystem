@@ -94,11 +94,12 @@ class Extract(object):
             df = pd.read_pickle(self.mock_path_race)
         else:
             cnxn = self._connect_baoz_mdb()
-#            select_sql = 'SELECT データ区分, 競走コード, 月日, 距離, トラック種別コード, 主催者コード, 競走番号, 場コード, 場名, グレードコード, 競走種別コード, 競走条件コード, 発走時刻, 頭数, 天候コード, 前３ハロン, 前４ハロン' \
-#                         ', 後３ハロン, 後４ハロン, トラックコード,  馬場状態コード, 前半タイム, 予想計算済み, 予想勝ち指数, ペース, 初出走頭数, 混合, 予想決着指数, 投票フラグ, 波乱度, 馬券発売フラグ, 予想計算状況フラグ, メインレース, タイム指数誤差, 登録頭数, 回次, 日次 FROM レースT WHERE 月日 >= #' + \
+            select_sql = 'SELECT データ作成年月日, 競走コード, 月日, 距離, 競走番号, 場コード, 場名, 主催者コード,競走種別コード, 発走時刻, 頭数, トラックコード, 予想勝ち指数,競走条件コード, トラック種別コード, ' \
+                         '初出走頭数, 混合, 予想決着指数, 登録頭数, 回次, 日次, 天候コード, 前３ハロン, 前４ハロン, 後３ハロン, 後４ハロン, 馬場状態コード, 投票フラグ, 馬券発売フラグ, 予想計算状況フラグ, ' \
+                         '前半タイム,ペース, 人気馬支持率1, 人気馬支持率2, 人気馬支持率3, 波乱度, タイム指数誤差, グレードコード, データ区分, 一位入線タイム ' \
+                         'FROM レースT WHERE 月日 >= #' +  self.start_date + '# AND 月日 <= #' + self.end_date + '#'
+#            select_sql = 'SELECT * FROM レースT WHERE 月日 >= #' + \
 #                self.start_date + '# AND 月日 <= #' + self.end_date + '#'
-            select_sql = 'SELECT * FROM レースT WHERE 月日 >= #' + \
-                self.start_date + '# AND 月日 <= #' + self.end_date + '#'
             df_org = pd.read_sql(select_sql, cnxn)
             cnxn.close()
             df = df_org.astype({'トラック種別コード': object, '主催者コード': object, '場コード': object, '競走種別コード': object, '競走条件コード': object, 'トラックコード': object,
