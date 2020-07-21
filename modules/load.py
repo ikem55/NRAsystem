@@ -203,7 +203,7 @@ class Load(object):
         raceuma_prev_all_df = pd.merge(raceuma_prev_all_base_df, race_prev_all_base_df, on="競走コード").drop("競走コード", axis=1).rename(columns={"年月日": "年月日_y"})
 
         # 母数テーブルと過去走テーブルを血統登録番号で結合
-        raceuma_prev_df = pd.set_prev_dfmerge(raceuma_df, raceuma_prev_all_df, on="血統登録番号")
+        raceuma_prev_df = pd.merge(raceuma_df, raceuma_prev_all_df, on="血統登録番号")
         # 対象レースより前のレースのみに絞り込む
         raceuma_prev_df = raceuma_prev_df.query("年月日_x > 年月日_y")
         # 過去レースの結果を集計する

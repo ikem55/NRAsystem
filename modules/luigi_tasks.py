@@ -26,7 +26,7 @@ class Sub_get_learning_data(luigi.Task):
         slack.post_slack_text(dt.now().strftime("%Y/%m/%d %H:%M:%S") + " start Sub_get_learning_data job:" + self.skproc.version_str)
         with self.output().open("w") as target:
             print("------ learning_dfを作成")
-            self.skproc.set_learning_data()
+            self.skproc.set_learning_df()
             print("------ 学習用データを保存")
             self.skproc.learning_df.to_pickle(self.intermediate_folder + '_learning.pkl')
 
@@ -85,7 +85,7 @@ class Create_learning_model(luigi.Task):
         slack = Output()
         slack.post_slack_text(dt.now().strftime("%Y/%m/%d %H:%M:%S") + " start End_baoz_learning job:" + self.skproc.version_str)
         with self.output().open("w") as target:
-            file_name = self.intermediate_folder + "learning.pkl"
+            file_name = self.intermediate_folder + "_learning.pkl"
             with open(file_name, 'rb') as f:
                 df = pickle.load(f)
                 # 学習を実施

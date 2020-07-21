@@ -8,6 +8,7 @@ import os
 import numpy as np
 import pickle
 import category_encoders as ce
+import pyodbc
 
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
@@ -30,6 +31,11 @@ class SkProc(object):
     y_train = ""
     y_test = ""
     label_list = ""
+    table_name = 'race_win'
+    conn_str = (
+        r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
+        r'DBQ=C:\BaoZ\DB\MasterDB\MyDB.MDB;'
+    )
 
     def __init__(self, version_str, start_date, end_date, model_name, mock_flag, test_flag):
         self.start_date = start_date
@@ -72,6 +78,16 @@ class SkProc(object):
                 'UMATAN_ARE': {'objective': 'binary'},
                 'SANRENPUKU_ARE': {'objective': 'binary'},
             }
+
+    def _set_test_table(self, test_flag):
+        """ test用のテーブルをセットする """
+        if test_flag:
+            self.table_name = self.table_name + "_test"
+            self.conn_str = (
+                r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
+                r'DBQ=C:\BaoZ\DB\MasterDB\test_MyDB.MDB;'
+            )
+
 
     def _get_load_object(self, version_str, start_date, end_date, mock_flag, test_flag):
         ld = Load(version_str, start_date, end_date, mock_flag, test_flag)
@@ -480,6 +496,25 @@ class SkProc(object):
         #return_df = merge_df[['RACE_KEY', 'UMABAN', 'target_date', 'prob', 'predict_std', 'predict_rank']]
         import_df = merge_df[["RACE_KEY", "UMABAN", "pred", "prob", "predict_std", "predict_rank", "target", "target_date"]].round(3)
         return import_df
+
+    def import_data(self, df):
+        """ 計算した予測値のdataframeを地方競馬DBに格納する
+
+        :param dataframe df: dataframe
+        """
+        cnxn = pyodbc.connect(self.conn_str)
+        crsr = cnxn.cursor()
+        re_df = df.replace([np.inf, -np.inf], np.nan).dropna()
+        date_list = df['target_date'].drop_duplicates()
+        for date in date_list:
+            print(date)
+            target_df = re_df[re_df['target_date'] == date]
+            crsr.execute("DELETE FROM " + self.table_name + " WHERE target_date ='" + date + "'")
+            crsr.executemany(
+                f"INSERT INTO " + self.table_name + " (競走コード, 馬番, 予測フラグ, 予測値, 予測値偏差, 予測値順位, target, target_date) VALUES (?,?,?,?,?,?,?,?)",
+                target_df.itertuples(index=False)
+            )
+            cnxn.commit()
 
     def _set_predict_target_encoding(self, df):
         """ 渡されたdataframeに対してTargetEncodeを行いエンコードした値をセットしたdataframeを返す
