@@ -23,6 +23,7 @@ class SkProc(object):
     """
     learning_df = ""
     categ_columns = ""
+    target_enc_columns = ""
     target_flag = ""
     x_df = ""
     y_df = ""
@@ -45,6 +46,7 @@ class SkProc(object):
         self._set_folder_path(version_str, model_name, test_flag)
         self._set_index_list(model_name)
         self._set_obj_column_list(version_str)
+        self._set_test_table(test_flag)
         mu.create_folder(self.model_folder)
         self.ld = self._get_load_object(version_str, start_date, end_date, mock_flag, test_flag)
         self.skmodel = self._get_skmodel_object(model_name, version_str, start_date, end_date, test_flag)
@@ -204,6 +206,8 @@ class SkProc(object):
         :param dataframe y_df: dataframe
         :return: dataframe
         """
+        if self.target_enc_columns == "":
+            self.target_enc_columns == self.skmodel.target_enc_columns
         target_encoding_columns = list(set(x_df.columns.tolist()) & set(self.target_enc_columns))
         for label in target_encoding_columns:
             x_df.loc[:, "tr_" + label] = self._target_encoding(x_df[label], label, self.target_flag + '_tr_' + label, fit, y_df)
@@ -515,6 +519,27 @@ class SkProc(object):
                 target_df.itertuples(index=False)
             )
             cnxn.commit()
+
+    def create_mydb_table(self):
+        """ mydbに予測データを作成する """
+        cnxn = pyodbc.connect(self.conn_str)
+        create_table_sql = 'CREATE TABLE ' + self.table_name + ' (' \
+            '競走コード DOUBLE, 馬番 BYTE, 予測フラグ SINGLE, 予測値 SINGLE, ' \
+            '予測値偏差 SINGLE, 予測値順位 BYTE, target VARCHAR(255), target_date VARCHAR(255),' \
+            ' PRIMARY KEY(競走コード, 馬番, target));'
+        crsr = cnxn.cursor()
+        table_list = []
+        for talble_info in crsr.tables(tableType='TABLE'):
+            table_list.append(talble_info.table_name)
+        print(table_list)
+        if self.table_name in table_list:
+            print("drop table")
+            crsr.execute('DROP TABLE ' + self.table_name)
+        print(create_table_sql)
+        crsr.execute(create_table_sql)
+        crsr.commit()
+        crsr.close()
+        cnxn.close()
 
     def _set_predict_target_encoding(self, df):
         """ 渡されたdataframeに対してTargetEncodeを行いエンコードした値をセットしたdataframeを返す
