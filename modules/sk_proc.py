@@ -541,6 +541,15 @@ class SkProc(object):
         crsr.close()
         cnxn.close()
 
+    def set_latest_date(self):
+        """ 処理済み日の最新日付を取得する """
+        cnxn = pyodbc.connect(self.conn_str)
+        select_sql = 'SELECT DISTINCT target_date FROM ' + self.table_name + ' WHERE target_date <= #' + self.end_date + '#'
+        df = pd.read_sql(select_sql, cnxn)
+        max_date = df.max()
+        self.start_date = max_date
+
+
     def _set_predict_target_encoding(self, df):
         """ 渡されたdataframeに対してTargetEncodeを行いエンコードした値をセットしたdataframeを返す
 

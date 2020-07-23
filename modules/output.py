@@ -11,10 +11,9 @@ class Output(object):
         self.slack_operation_url = mc.SLACK_operation_webhook_url
         self.slack_summary_url = mc.SLACK_summary_webhook_url
         self.slack_realtime_url = mc.SLACK_realtime_webhook_url
-        self.slack_url = mc.SLACK_operation_webhook_url
 
     def post_slack_text(self, post_text):
-        slack = slackweb.Slack(url=self.slack_url)
+        slack = slackweb.Slack(url=self.slack_operation_url)
         slack.notify(text=post_text)
 
     def stop_hrsystem_vm(self):
