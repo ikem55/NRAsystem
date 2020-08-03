@@ -5,6 +5,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 from gspread_dataframe import set_with_dataframe
 import requests
+from modules.extract import Extract
 
 class Output(object):
     def __init__(self):
@@ -14,10 +15,20 @@ class Output(object):
 
     def post_slack_text(self, post_text):
         slack = slackweb.Slack(url=self.slack_operation_url)
-        #slack.notify(text=post_text)
+        # slack.notify(text=post_text)
+
+    def post_slack_real(self, post_text):
+        slack = slackweb.Slack(url=self.slack_realtime_url)
+        slack.notify(text=post_text)
+
+    def post_slack_summary(self, post_text):
+        slack = slackweb.Slack(url=self.slack_summary_url)
+        slack.notify(text=post_text)
 
     def stop_hrsystem_vm(self):
         url = mc.HRsystem_stop_webhook
         response = requests.post(url)
         print(response)
+
+
 

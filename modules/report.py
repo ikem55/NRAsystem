@@ -3,6 +3,7 @@ import modules.util as mu
 import my_config as mc
 
 import pandas as pd
+import os
 import dropbox
 from datetime import datetime as dt
 
@@ -58,6 +59,8 @@ class Report(object):
         print(month_list)
         folder_path = "/pbi/lb_bet/"
         local_folder_path = "./scripts/data/lb_bet/"
+        if not os.path.exists(local_folder_path):
+            os.makedirs(local_folder_path)
         for month in month_list:
             temp_df = bet_df.query(f"月日 == '{month}'")
             file_name = local_folder_path + month + ".csv"
@@ -66,12 +69,15 @@ class Report(object):
                 self.dbx.files_upload(f.read(), folder_path + month + ".csv", mode=dropbox.files.WriteMode.overwrite)
 
     def export_raceuma_df(self):
-        raceuma_df = self.raceuma_df[["競走コード", "馬番", "年月日", "得点", "馬券評価順位", "単勝配当", "複勝配当", "WIN_RATE", "JIKU_RATE", "ANA_RATE", "WIN_RANK", "JIKU_RANK", "ANA_RANK", "SCORE", "SCORE_RANK", "ck1", "ck2", "ck3"]].copy()
+        raceuma_df = self.raceuma_df[["競走コード", "馬番", "年月日", "得点", "馬券評価順位", "単勝配当", "複勝配当", "WIN_RATE", "JIKU_RATE", "ANA_RATE",
+                                      "WIN_RANK", "JIKU_RANK", "ANA_RANK", "SCORE", "SCORE_RANK", "WIN_SCORE", "JIKU_SCORE", "ANA_SCORE"]].copy()
         raceuma_df.loc[:, "月日"] = raceuma_df["年月日"].apply(lambda x: str(x.year) + str(x.month))
         month_list = raceuma_df["月日"].drop_duplicates().tolist()
         print(month_list)
         folder_path = "/pbi/lb_raceuma/"
         local_folder_path = "./scripts/data/lb_raceuma/"
+        if not os.path.exists(local_folder_path):
+            os.makedirs(local_folder_path)
         for month in month_list:
             temp_df = raceuma_df.query(f"月日 == '{month}'")
             file_name = local_folder_path + month + ".csv"
@@ -86,6 +92,8 @@ class Report(object):
         print(month_list)
         folder_path = "/pbi/lb_race/"
         local_folder_path = "./scripts/data/lb_race/"
+        if not os.path.exists(local_folder_path):
+            os.makedirs(local_folder_path)
         for month in month_list:
             temp_df = race_df.query(f"月日 == '{month}'")
             file_name = local_folder_path + month + ".csv"
@@ -238,17 +246,14 @@ class Report(object):
     def get_kaime_target_text(self):
         target_text = '[ 軸候補結果 ]\r\n'
         race_df, raceuma_df = self._get_todays_df()
-        query_umaren1 = "得点 >= 48 and SCORE_RANK <= 5 and 馬券評価順位 <= 2 and デフォルト得点順位 <= 4 and 予想人気 <= 8 and SCORE >= 49 and JIKU_RATE >= 44 and WIN_RATE >= 50"
-        query_umatan_1 = "馬券評価順位 <= 2 and SCORE >= 51 and デフォルト得点 >= 47 and JIKU_RATE >= 43 and WIN_RATE >= 49 and ANA_RATE >= 43 and ANA_RATE < 60"
-        query_umatan_2 = "馬券評価順位 <= 3 and SCORE_RANK <= 6 and デフォルト得点順位 <= 4 and 得点 >= 47 and SCORE >= 43 and デフォルト得点 >= 45 and 得点V3 >= 43 and 得点V3 < 55 and WIN_RATE >= 40 and ANA_RATE >= 40 and ANA_RATE < 60"
-        query_wide_1 = "馬券評価順位 <= 3 and 予想人気 <= 4 and 得点 >= 47 and SCORE_RANK >= 2 and SCORE_RANK < 9 and SCORE >= 47 and デフォルト得点 >= 41 and WIN_RATE >= 41 and WIN_RATE < 60 and JIKU_RATE >= 40"
-        query_sanrenpuku_1 ="馬券評価順位 <= 4 and 得点 >= 50 and デフォルト得点 >= 50 and SCORE >= 44 and 予想人気 >= 2 and 予想人気 < 9 and WIN_RATE >= 47 and JIKU_RATE >= 42 and ANA_RATE <= 58"
-        umaren1_df = raceuma_df.query(query_umaren1)
+        query_umaren_1 = "馬券評価順位 = 1 and JIKU_SCORE >= 60 and 得点 >= 57"
+        query_umatan_1 = "馬券評価順位 = 1 and WIN_SCORE >= 35 and ANA_SCORE >= 20 and JIKU_RATE >= 55"
+        query_wide_1 = "馬券評価順位 = 1 and JIKU_SCORE >= 60 and 得点 >= 58 "
+        query_sanrenpuku_1 ="馬券評価順位 = 1 and 得点 >= 58"
+        umaren1_df = raceuma_df.query(query_umaren_1)
         target_text += "馬連軸：" + self._calc_raceuma_target_result(umaren1_df, "ren")
         umatan1_df = raceuma_df.query(query_umatan_1)
         target_text += "馬単軸1：" + self._calc_raceuma_target_result(umatan1_df, "ck1")
-        umatan2_df = raceuma_df.query(query_umatan_2)
-        target_text += "馬単軸2：" + self._calc_raceuma_target_result(umatan2_df, "ck2")
         wide1_df = raceuma_df.query(query_wide_1)
         target_text += "ワイ軸：" + self._calc_raceuma_target_result(wide1_df, "fuku")
         sanrenpuku1_df = raceuma_df.query(query_sanrenpuku_1)
