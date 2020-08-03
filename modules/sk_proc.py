@@ -10,6 +10,9 @@ import pickle
 import category_encoders as ce
 import pyodbc
 
+from datetime import datetime as dt
+from datetime import timedelta
+
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.over_sampling import BorderlineSMOTE
@@ -175,6 +178,9 @@ class SkProc(object):
         :param str target_column: 目的変数のカラム名
         """
         df = df.drop(self.index_list, axis=1)
+        # 重みづけ用の列を追加
+        df_weight = df[target_column].value_counts(normalize=True)
+        df.loc[:, "weight"] = df[target_column].apply(lambda x: 1 / (df_weight[x] * 100))
         self.y_df = df[target_column].copy()
         self.x_df = df.drop(self.obj_column_list, axis=1).copy()
         self._set_label_list(self.x_df)
@@ -207,7 +213,7 @@ class SkProc(object):
         :return: dataframe
         """
         if self.target_enc_columns == "":
-            self.target_enc_columns == self.skmodel.target_enc_columns
+            self.target_enc_columns = self.skmodel.target_enc_columns
         target_encoding_columns = list(set(x_df.columns.tolist()) & set(self.target_enc_columns))
         for label in target_encoding_columns:
             x_df.loc[:, "tr_" + label] = self._target_encoding(x_df[label], label, self.target_flag + '_tr_' + label, fit, y_df)
@@ -276,6 +282,7 @@ class SkProc(object):
                     self.X_train = self._change_obj_to_int(self.X_train)
                     self.X_test = self._change_obj_to_int(self.X_test)
                     imp_features = self._learning_base_race_lgb(this_model_name, target)
+                    imp_features.append("weight")
                     # 抽出した説明変数でもう一度Ｌｅａｒｎｉｎｇを実施
                     self.x_df = self.x_df[imp_features]
                     self.categ_columns = list(set(self.categ_columns) & set(imp_features))
@@ -305,6 +312,8 @@ class SkProc(object):
         print("learning_base_race_lgb")
         # テスト用のデータを評価用と検証用に分ける
         X_eval, X_valid, y_eval, y_valid = train_test_split(self.X_test, self.y_test, random_state=42)
+        X_eval_weight = X_eval["weight"]
+        X_eval = X_eval.drop("weight", axis=1)
 
         if self.test_flag:
             num_boost_round = 5
@@ -321,8 +330,8 @@ class SkProc(object):
 
         # データセットを生成する
         # カテゴリ変数を指定する　https://upura.hatenablog.com/entry/2019/10/29/184617
-        lgb_train = lgb.Dataset(self.X_train, self.y_train, categorical_feature=self.categ_columns)
-        lgb_eval = lgb.Dataset(X_eval, y_eval, reference=lgb_train, categorical_feature=self.categ_columns)
+        lgb_train = lgb.Dataset(self.X_train.drop("weight", axis=1), self.y_train, categorical_feature=self.categ_columns, weight=self.X_train["weight"])
+        lgb_eval = lgb.Dataset(X_eval, y_eval, reference=lgb_train, categorical_feature=self.categ_columns, weight=X_eval_weight)
 
         # 上記のパラメータでモデルを学習する
         this_param = self.lgbm_params[target]
@@ -344,8 +353,8 @@ class SkProc(object):
         null_imp_df = pd.DataFrame()
         for i in range(n_rum):
             print(i)
-            ram_lgb_train = lgb.Dataset(self.X_train, np.random.permutation(self.y_train))
-            ram_lgb_eval = lgb.Dataset(X_eval, np.random.permutation(y_eval), reference=lgb_train)
+            ram_lgb_train = lgb.Dataset(self.X_train.drop("weight", axis=1), np.random.permutation(self.y_train), weight=self.X_train["weight"])
+            ram_lgb_eval = lgb.Dataset(X_eval, np.random.permutation(y_eval), reference=lgb_train, weight=X_eval_weight)
             ram_model = lgb_original.train(this_param, ram_lgb_train,
                               # モデルの評価用データを渡す
                               valid_sets=ram_lgb_eval,
@@ -377,10 +386,12 @@ class SkProc(object):
     def _learning_race_lgb(self, this_model_name, target):
         # テスト用のデータを評価用と検証用に分ける
         X_eval, X_valid, y_eval, y_valid = train_test_split(self.X_test, self.y_test, random_state=42)
+        X_eval_weight = X_eval["weight"]
+        X_eval = X_eval.drop("weight", axis=1)
 
         # データセットを生成する
-        lgb_train = lgb.Dataset(self.X_train, self.y_train)#, categorical_feature=self.categ_columns)
-        lgb_eval = lgb.Dataset(X_eval, y_eval, reference=lgb_train)#, categorical_feature=self.categ_columns)
+        lgb_train = lgb.Dataset(self.X_train.drop("weight", axis=1), self.y_train, weight=self.X_train["weight"])#, categorical_feature=self.categ_columns)
+        lgb_eval = lgb.Dataset(X_eval, y_eval, reference=lgb_train, weight=X_eval_weight)#, categorical_feature=self.categ_columns)
 
         if self.test_flag:
             num_boost_round=5
@@ -590,3 +601,17 @@ class SkProc(object):
             all_analyze_df = pd.concat([all_analyze_df, std_analyze_df])
 
         return all_analyze_df
+
+    @classmethod
+    def get_recent_day(cls, start_date):
+        cnxn = pyodbc.connect(cls.conn_str)
+        select_sql = "SELECT target_date from " + cls.table_name
+        df = pd.read_sql(select_sql, cnxn)
+        if not df.empty:
+            recent_date = df['target_date'].max()
+            dt_recent_date = dt.strptime(recent_date, '%Y/%m/%d') + timedelta(days=1)
+            print(dt_recent_date)
+            changed_start_date = dt_recent_date.strftime('%Y/%m/%d')
+            return changed_start_date
+        else:
+            return start_date
