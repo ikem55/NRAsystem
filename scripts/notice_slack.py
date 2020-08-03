@@ -39,6 +39,7 @@ if rep.check_flag:
         post_text += target_text
         output.post_slack_summary(post_text)
         export_to_dropbox()
+        output.stop_hrsystem_vm()
 
 else:
     output.post_slack_real(current_text)
