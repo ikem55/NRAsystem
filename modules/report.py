@@ -69,7 +69,7 @@ class Report(object):
                 self.dbx.files_upload(f.read(), folder_path + month + ".csv", mode=dropbox.files.WriteMode.overwrite)
 
     def export_raceuma_df(self):
-        raceuma_df = self.raceuma_df[["競走コード", "馬番", "年月日", "得点", "馬券評価順位", "単勝配当", "複勝配当", "WIN_RATE", "JIKU_RATE", "ANA_RATE",
+        raceuma_df = self.raceuma_df[["競走コード", "馬番", "年月日", "得点", "馬券評価順位", "確定着順", "単勝配当", "複勝配当", "WIN_RATE", "JIKU_RATE", "ANA_RATE",
                                       "WIN_RANK", "JIKU_RANK", "ANA_RANK", "SCORE", "SCORE_RANK", "WIN_SCORE", "JIKU_SCORE", "ANA_SCORE"]].copy()
         raceuma_df.loc[:, "月日"] = raceuma_df["年月日"].apply(lambda x: str(x.year) + str(x.month))
         month_list = raceuma_df["月日"].drop_duplicates().tolist()
@@ -246,10 +246,10 @@ class Report(object):
     def get_kaime_target_text(self):
         target_text = '[ 軸候補結果 ]\r\n'
         race_df, raceuma_df = self._get_todays_df()
-        query_umaren_1 = "馬券評価順位 = 1 and JIKU_SCORE >= 60 and 得点 >= 57"
-        query_umatan_1 = "馬券評価順位 = 1 and WIN_SCORE >= 35 and ANA_SCORE >= 20 and JIKU_RATE >= 55"
-        query_wide_1 = "馬券評価順位 = 1 and JIKU_SCORE >= 60 and 得点 >= 58 "
-        query_sanrenpuku_1 ="馬券評価順位 = 1 and 得点 >= 58"
+        query_umaren_1 = "馬券評価順位 == 1 and JIKU_SCORE >= 60 and 得点 >= 57"
+        query_umatan_1 = "馬券評価順位 == 1 and WIN_SCORE >= 35 and ANA_SCORE >= 20 and JIKU_RATE >= 55"
+        query_wide_1 = "馬券評価順位 == 1 and JIKU_SCORE >= 60 and 得点 >= 58 "
+        query_sanrenpuku_1 ="馬券評価順位 == 1 and 得点 >= 58"
         umaren1_df = raceuma_df.query(query_umaren_1)
         target_text += "馬連軸：" + self._calc_raceuma_target_result(umaren1_df, "ren")
         umatan1_df = raceuma_df.query(query_umatan_1)
