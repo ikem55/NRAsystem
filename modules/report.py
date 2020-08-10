@@ -70,7 +70,7 @@ class Report(object):
 
     def export_raceuma_df(self):
         raceuma_df = self.raceuma_df[["競走コード", "馬番", "年月日", "得点", "馬券評価順位", "確定着順", "単勝配当", "複勝配当", "WIN_RATE", "JIKU_RATE", "ANA_RATE",
-                                      "WIN_RANK", "JIKU_RANK", "ANA_RANK", "SCORE", "SCORE_RANK", "WIN_SCORE", "JIKU_SCORE", "ANA_SCORE"]].copy()
+                                      "WIN_RANK", "JIKU_RANK", "ANA_RANK", "SCORE", "SCORE_RANK", "WIN_SCORE", "JIKU_SCORE", "ANA_SCORE", "デフォルト得点", "デフォルト得点順位"]].copy()
         raceuma_df.loc[:, "月日"] = raceuma_df["年月日"].apply(lambda x: str(x.year) + str(x.month))
         month_list = raceuma_df["月日"].drop_duplicates().tolist()
         print(month_list)
