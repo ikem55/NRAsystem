@@ -216,7 +216,8 @@ class SkProc(object):
             self.target_enc_columns = self.skmodel.target_enc_columns
         target_encoding_columns = list(set(x_df.columns.tolist()) & set(self.target_enc_columns))
         for label in target_encoding_columns:
-            x_df.loc[:, "tr_" + label] = self._target_encoding(x_df[label], label, self.target_flag + '_tr_' + label, fit, y_df)
+            #x_df.loc[:, "tr_" + label] = self._target_encoding(x_df[label], label, self.target_flag + '_tr_' + label, fit, y_df)
+            x_df["tr_" + label] = self._target_encoding(x_df[label], label, self.target_flag + '_tr_' + label, fit, y_df)
         return x_df
 
     def _target_encoding(self, sr, label, dict_name, fit, y):
@@ -283,6 +284,9 @@ class SkProc(object):
                     self.X_test = self._change_obj_to_int(self.X_test)
                     imp_features = self._learning_base_race_lgb(this_model_name, target)
                     imp_features.append("weight")
+                    # x_dfにTRの値を持っていないのでTR前の値に切り替え
+                    imp_features = [w.replace('tr_', '') for w in imp_features]
+                    imp_features = list(set(imp_features))
                     # 抽出した説明変数でもう一度Ｌｅａｒｎｉｎｇを実施
                     self.x_df = self.x_df[imp_features]
                     self.categ_columns = list(set(self.categ_columns) & set(imp_features))
@@ -478,6 +482,9 @@ class SkProc(object):
         print("======= this_model_name: " + this_model_name + " ==========")
         with open(self.model_folder + this_model_name + '_feat_columns.pickle', 'rb') as f:
             imp_features = pickle.load(f)
+        # x_dfにTRの値を持っていないのでTR前の値に切り替え
+        imp_features = [w.replace('tr_', '') for w in imp_features]
+        imp_features = list(set(imp_features))
         exp_df = df.drop(self.index_list, axis=1)
         exp_df = exp_df[imp_features]
         exp_df = self._set_predict_target_encoding(exp_df)
