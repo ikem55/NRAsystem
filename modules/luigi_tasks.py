@@ -57,6 +57,10 @@ class Sub_create_feature_select_data(luigi.Task):
             file_name = self.intermediate_folder + "_learning.pkl"
             with open(file_name, 'rb') as f:
                 learning_df = pickle.load(f)
+                pd.set_option('display.max_columns', 3000)
+                pd.set_option('display.max_rows', 3000)
+                print(learning_df.iloc[0])
+                print(learning_df.sum())
                 self.skproc.create_featrue_select_data(learning_df)
             slack.post_slack_text(dt.now().strftime(
                 "%Y/%m/%d %H:%M:%S") + " finish Sub_create_feature_select_data job:" + self.skproc.version_str)

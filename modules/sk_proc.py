@@ -285,8 +285,8 @@ class SkProc(object):
                     imp_features = self._learning_base_race_lgb(this_model_name, target)
                     imp_features.append("weight")
                     # x_dfにTRの値を持っていないのでTR前の値に切り替え
-                    imp_features = [w.replace('tr_', '') for w in imp_features]
-                    imp_features = list(set(imp_features))
+                    #imp_features = [w.replace('tr_', '') for w in imp_features]
+                    #imp_features = list(set(imp_features))
                     # 抽出した説明変数でもう一度Ｌｅａｒｎｉｎｇを実施
                     self.x_df = self.x_df[imp_features]
                     self.categ_columns = list(set(self.categ_columns) & set(imp_features))
@@ -483,8 +483,8 @@ class SkProc(object):
         with open(self.model_folder + this_model_name + '_feat_columns.pickle', 'rb') as f:
             imp_features = pickle.load(f)
         # x_dfにTRの値を持っていないのでTR前の値に切り替え
-        imp_features = [w.replace('tr_', '') for w in imp_features]
-        imp_features = list(set(imp_features))
+        #imp_features = [w.replace('tr_', '') for w in imp_features]
+        #imp_features = list(set(imp_features))
         exp_df = df.drop(self.index_list, axis=1)
         exp_df = exp_df[imp_features]
         exp_df = self._set_predict_target_encoding(exp_df)
