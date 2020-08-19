@@ -6,6 +6,11 @@ import modules.util as mu
 
 import os
 import pandas as pd
+pd.set_option('display.max_columns', 3000)
+pd.set_option('display.max_rows', 3000)
+#カラム内の文字数。デフォルトは50だった
+pd.set_option("display.max_colwidth", 300)
+
 import pickle
 from luigi.util import requires
 from datetime import datetime as dt
@@ -167,8 +172,7 @@ class Calc_predict_data(luigi.Task):
                 import_df.to_pickle(self.intermediate_folder + 'export_data.pkl')
                 analyze_df = self.skproc.eval_pred_data(import_df)
                 print(analyze_df)
-            else:
-                self.skproc.import_data(import_df)
+            self.skproc.import_data(import_df)
             slack = Output()
             slack.post_slack_text(dt.now().strftime("%Y/%m/%d %H:%M:%S") +
                 " finish predict job:" + self.skproc.version_str)
@@ -195,10 +199,71 @@ class Simulate_predict_data(luigi.Task):
         print("---" + __class__.__name__ + ": run")
         with self.output().open("w") as target:
             import_df = pd.read_pickle(self.intermediate_folder + 'export_data.pkl')
-            start_date = import_df["target_date"].min()
-            end_date = import_df["target_date"].max()
-            sim = Simulation(start_date, end_date, False, import_df)
-            cond1 = "target == 'JIKU_FLAG' and predict_rank == 1"
-            cond2 = "target == 'ANA_FLAG' and predict_rank <= 5"
-            umaren_sr = sim.simulation_umaren(cond1, cond2)
-            print(umaren_sr)
+            mark_base_df = self.skproc.create_mark_base_df(import_df)
+            result_df = self.skproc.get_result_df()
+            monthly_mark_base_summary_df = self.skproc.calc_monthly_tanpuku_df(mark_base_df, result_df)
+            print(monthly_mark_base_summary_df.sort_values("条件"))
+
+            sim_df = self.skproc.simulate_mark_rate(mark_base_df, result_df)
+            print(sim_df)
+            target_sr = sim_df.iloc[0]
+            print("-------- Mark設定条件 ---------------")
+            print(target_sr)
+            win_rate = target_sr["win_rate"]
+            jiku_rate = target_sr["jiku_rate"]
+            ana_rate = target_sr["ana_rate"]
+
+            mark_df = self.skproc.create_mark_df(mark_base_df, win_rate, jiku_rate, ana_rate)
+            mark_df.to_pickle(self.intermediate_folder + 'mark_df.pkl')
+
+            summary_df = self.skproc.calc_monthly_mark_df(mark_df, result_df)
+            print(summary_df.sort_values("条件"))
+
+    def output(self):
+        """
+        :return: MockのOutputを返す
+        """
+#        return MockTarget("output")
+        return luigi.LocalTarget(format=luigi.format.Nop, path=self.intermediate_folder + mu.convert_date_to_str(self.end_date) + "_" + __class__.__name__ + "_" + self.skproc.model_name)
+
+
+@requires(Simulate_predict_data)
+class Simulate_kaime_data(luigi.Task):
+    """
+    Calc_predict_dataで作成したpredictデータをもとにシミュレーションを行う。
+    """
+
+    def requires(self):
+        print("---" + __class__.__name__+ " : requires")
+        return Calc_predict_data()
+
+    def run(self):
+        print("---" + __class__.__name__ + ": run")
+        with self.output().open("w") as target:
+            mark_df = pd.read_pickle(self.intermediate_folder + 'mark_df.pkl')
+            mock_flag = False
+            sim = Simulation(self.start_date, self.end_date, mock_flag, mark_df)
+
+            cond_df = pd.DataFrame()
+            for type in ["単勝", "複勝","馬連", "馬単", "ワイド", "三連複"]:
+                print(f"----------- {type} -------------")
+                proc_sim_sr = sim.proc_fold_simulation(type)
+                print(proc_sim_sr)
+                if len(proc_sim_sr) != 0:
+                    cond = proc_sim_sr["条件"]
+                    print("check monthly")
+                    sim_df = sim.calc_monthly_sim_df(type, cond)
+                    print(sim_df[["年月", "R的中率", "レース数", "件数", "回収率", "払戻偏差", "払戻平均", "的中率", "的中数", "購入総額"]].sort_values(
+                        "年月"))
+                    proc_sim_sr["タイプ"] = type
+                    cond_df = cond_df.append(proc_sim_sr, ignore_index=True)
+            print(cond_df)
+            cond_df.to_pickle(self.intermediate_folder + 'cond_df.pkl')
+
+
+    def output(self):
+        """
+        :return: MockのOutputを返す
+        """
+#        return MockTarget("output")
+        return luigi.LocalTarget(format=luigi.format.Nop, path=self.intermediate_folder + mu.convert_date_to_str(self.end_date) + "_" + __class__.__name__ + "_" + self.skproc.model_name)
