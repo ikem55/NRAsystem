@@ -1,5 +1,6 @@
 from modules.report import Report
 from modules.output import Output
+from modules.import_to_cosmosdb import Import_to_CosmosDB
 
 from datetime import datetime as dt
 from datetime import timedelta
@@ -35,6 +36,8 @@ if rep.check_flag:
     output.post_slack_real(post_text)
     if now_time > rep.final_race_time:
         print("ok")
+        cos = Import_to_CosmosDB(start_date, False)
+        cos.import_predict_data()
         target_text = rep.get_kaime_target_text()
         post_text += target_text
         output.post_slack_summary(post_text)

@@ -32,7 +32,7 @@ class Import_to_CosmosDB(object):
         # https://docs.microsoft.com/ja-jp/python/api/azure-cosmos/azure.cosmos.containerproxy?view=azure-python#read-item-item--partition-key--populate-query-metrics-none--post-trigger-include-none----kwargs-
         for index, row in df.iterrows():
             dict = row.to_dict()
-            print(dict)
+            #print(dict)
             self.container.upsert_item(dict)
 
     def get_data(self, type, target_date):
@@ -63,9 +63,9 @@ class Import_to_CosmosDB(object):
         race_df.loc[:, "type"] = "race"
         race_df.loc[:, "id"] = race_df["競走コード"].astype("str")
         race_df.rename(columns=self.race_dict, inplace=True)
-        print(race_df.head())
         print(race_df.shape)
         self.upsert_df(race_df)
+
         raceuma_df = self.ext.get_raceuma_table_base().query("データ区分 == '7'").copy().fillna(0)
         raceuma_df = raceuma_df[["データ区分", "競走コード", "馬番", "年月日", "予想タイム指数順位", "単勝配当", "複勝配当", "単勝人気", "単勝オッズ",
                                  "予想人気" , "異常区分コード", "確定着順", "デフォルト得点順位", "WIN_RATE", "JIKU_RATE",
