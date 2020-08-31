@@ -235,7 +235,7 @@ class Simulate_kaime_data(luigi.Task):
 
     def requires(self):
         print("---" + __class__.__name__+ " : requires")
-        return Calc_predict_data()
+        return Simulate_predict_data()
 
     def run(self):
         print("---" + __class__.__name__ + ": run")

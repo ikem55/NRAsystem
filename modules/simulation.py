@@ -104,14 +104,14 @@ class Simulation(object):
 
 
     def calc_sim_df(self, type, cond, odds_cond):
-        base_df, low_odds_list, high_odds_list = self._subproc_get_odds_base_df(type, cond)
+        base_df = self._subproc_get_odds_base_df(type, cond)
         sim_df = base_df.query(odds_cond).copy()
         base_sr = self._calc_summary(sim_df, cond)
         return base_sr
 
 
     def calc_monthly_sim_df(self, type, cond):
-        sim_df, low_odds_list, high_odds_list = self._subproc_get_odds_base_df(type, cond)
+        sim_df = self._subproc_get_odds_base_df(type, cond)
         summary_df = pd.DataFrame()
         ym_list = sim_df["年月"].drop_duplicates().tolist()
         for ym in ym_list:
@@ -123,86 +123,34 @@ class Simulation(object):
 
     def _subproc_get_odds_base_df(self, type, cond):
         result_df, raceuma_df = self._subproc_get_result_data(type)
-        odds_df = self.get_odds_df(type)
 
         if type == "単勝" or type == "複勝":
-            temp_raceuma1_df = raceuma_df.query(cond).copy()
-            base_df = self.get_1tou_kaime(temp_raceuma1_df, odds_df)
-            print(base_df.head())
-            print(result_df.head())
-            base_df = pd.merge(base_df, result_df, on=["競走コード", "馬番"], how="left").fillna(0)
-            low_odds_list = [5, 8, 10]
-            high_odds_list = [10, 20, 30, 50]
+            base_df = raceuma_df.query(cond).copy()
+            #base_df = self.get_1tou_kaime(temp_raceuma1_df, odds_df)
+            # base_df = pd.merge(temp_raceuma1_df, result_df, on=["競走コード", "馬番"], how="left").fillna(0)
         elif type == "馬連" or type == "ワイド":
             temp_raceuma1_df = raceuma_df.query(cond[0]).copy()
             temp_raceuma2_df = raceuma_df.query(cond[1]).copy()
-#            temp_raceuma_df = self._subproc_create_umaren_df(temp_raceuma1_df, temp_raceuma2_df, result_df)
-#            temp_raceuma_df.loc[:, "馬番_1"] = temp_raceuma_df["馬番"].str[0:2]
-#            temp_raceuma_df.loc[:, "馬番_2"] = temp_raceuma_df["馬番"].str[4:6]
-#            base_df = pd.merge(temp_raceuma_df, odds_df, on=["競走コード", "馬番_1", "馬番_2"])
-            base_df = self.get_2tou_kaime(temp_raceuma1_df, temp_raceuma2_df, odds_df)
-            base_df = pd.merge(base_df, result_df, on=["競走コード", "馬番1", "馬番2"], how="left").fillna(0)
-            low_odds_list = [10, 15, 20]
-            high_odds_list = [30, 50, 80, 100]
+            base_df = self._subproc_create_umaren_df(temp_raceuma1_df, temp_raceuma2_df, result_df)
+            #base_df = self.get_2tou_kaime(temp_raceuma1_df, temp_raceuma2_df, odds_df)
+            #base_df = pd.merge(base_df, result_df, on=["競走コード", "馬番1", "馬番2"], how="left").fillna(0)
         elif type == "馬単":
             temp_raceuma1_df = raceuma_df.query(cond[0]).copy()
             temp_raceuma2_df = raceuma_df.query(cond[1]).copy()
-#            temp_raceuma_df = self._subproc_create_umaren_df(temp_raceuma1_df, temp_raceuma2_df, result_df, ren=False)
-#            temp_raceuma_df.loc[:, "馬番_1"] = temp_raceuma_df["馬番"].str[0:2]
-#            temp_raceuma_df.loc[:, "馬番_2"] = temp_raceuma_df["馬番"].str[4:6]
-#            base_df = pd.merge(temp_raceuma_df, odds_df, on=["競走コード", "馬番_1", "馬番_2"])
-            base_df = self.get_2tou_kaime(temp_raceuma1_df, temp_raceuma2_df, odds_df, ren=False)
-            base_df = pd.merge(base_df, result_df, on=["競走コード",  "馬番1", "馬番2"], how="left").fillna(0)
-            low_odds_list = [10, 20, 30]
-            high_odds_list = [30, 50, 80, 100, 150]
+            base_df = self._subproc_create_umaren_df(temp_raceuma1_df, temp_raceuma2_df, result_df, ren=False)
+            #base_df = self.get_2tou_kaime(temp_raceuma1_df, temp_raceuma2_df, odds_df, ren=False)
+            #base_df = pd.merge(base_df, result_df, on=["競走コード",  "馬番1", "馬番2"], how="left").fillna(0)
         elif type == "三連複":
             temp_raceuma1_df = raceuma_df.query(cond[0]).copy()
             temp_raceuma2_df = raceuma_df.query(cond[1]).copy()
             temp_raceuma3_df = raceuma_df.query(cond[2]).copy()
-#            temp_raceuma_df = self._subproc_create_sanrenpuku_df(temp_raceuma1_df, temp_raceuma2_df, temp_raceuma3_df, result_df)
-#            temp_raceuma_df.loc[:, "馬番_1"] = temp_raceuma_df["馬番"].str[0:2]
-#            temp_raceuma_df.loc[:, "馬番_2"] = temp_raceuma_df["馬番"].str[4:6]
-#            temp_raceuma_df.loc[:, "馬番_3"] = temp_raceuma_df["馬番"].str[8:10]
-#            base_df = pd.merge(temp_raceuma_df, odds_df, on=["競走コード", "馬番_1", "馬番_2", "馬番_3"])
-            base_df = self.get_3tou_kaime(temp_raceuma1_df, temp_raceuma2_df, temp_raceuma3_df, odds_df)
-            base_df = pd.merge(base_df, result_df, on=["競走コード", "馬番1", "馬番2", "馬番3"], how="left").fillna(0)
-            low_odds_list = [10, 20, 30]
-            high_odds_list = [30, 50, 80, 100, 150]
+            base_df = self._subproc_create_sanrenpuku_df(temp_raceuma1_df, temp_raceuma2_df, temp_raceuma3_df, result_df)
+            #base_df = self.get_3tou_kaime(temp_raceuma1_df, temp_raceuma2_df, temp_raceuma3_df, odds_df)
+            #base_df = pd.merge(base_df, result_df, on=["競走コード", "馬番1", "馬番2", "馬番3"], how="left").fillna(0)
         else:
-            base_df = ""; low_odds_list = []; high_odds_list = []
-        ym_df = raceuma_df[["競走コード", "年月"]].drop_duplicates()
-        base_df = pd.merge(base_df, ym_df, on="競走コード")
-        return base_df, low_odds_list, high_odds_list
-
-    def proc_fold_odds_simulation(self, type, cond):
-        ym_list = self.raceuma_df["年月"].drop_duplicates().tolist()
-        # 対象券種毎の結果データを取得
-        base_df, low_odds_list, high_odds_list = self._subproc_get_odds_base_df(type, cond)
-        base_sr = self._calc_summary(base_df, cond)
-        sim_df = pd.DataFrame()
-        for low_odds in low_odds_list:
-            for high_odds in high_odds_list:
-                i = 0
-                if low_odds < high_odds:
-                    odds_cond = f"{low_odds} <= オッズ <= {high_odds}"
-                    temp_base_df = base_df.query(odds_cond).copy()
-                    temp_base_sim_sr = self._calc_summary(temp_base_df, cond)
-                    if temp_base_sim_sr["回収率"] >= base_sr["回収率"]:
-                        for ym in ym_list:
-                            temp_ym_base_df = temp_base_df.query(f"年月 == '{ym}'")
-                            temp_sim_sr = self._calc_summary(temp_ym_base_df, cond)
-                            if temp_sim_sr["回収率"] >= 100:
-                                i = i + 1
-                        temp_base_sim_sr["条件数"] = i
-                        temp_base_sim_sr["オッズ条件"] = odds_cond
-                        sim_df = sim_df.append(temp_base_sim_sr, ignore_index=True)
-        if len(sim_df.index) > 0:
-            final_sim_df = sim_df.sort_values(["条件数", "的中数", "回収率"], ascending=False).reset_index()
-            print(final_sim_df.head())
-            return final_sim_df.iloc[0]
-        else:
-            return base_sr
-
+            base_df = ""
+        print(base_df.head())
+        return base_df
 
     def _subproc_get_result_data(self, type):
         if type == "単勝":
@@ -252,6 +200,7 @@ class Simulation(object):
             candidate_sim_df = self.proc_simulation_umaren(raceuma_df, result_df, ren=False)
         elif type == "三連複":
             candidate_sim_df = self.proc_simulation_sanrenpuku(raceuma_df, result_df)
+
         if len(candidate_sim_df.index) == 0:
             print("対象なし")
             return pd.Series()
@@ -419,18 +368,18 @@ class Simulation(object):
         # df1の馬番を横持に変換
         df1_gp = df1.groupby("競走コード")["馬番"].apply(list)
         merge_df = pd.merge(df1_gp, odds_df, on="競走コード")
-        競走コード_list = []
+        race_key_list = []
         umaban_list = []
         odds_list = []
         for index, row in merge_df.iterrows():
             uma1 = row["馬番"]
             for element in uma1:
                 odds = row["odds"][element]
-                競走コード_list += [row["競走コード"]]
+                race_key_list += [row["競走コード"]]
                 umaban_list += [element]
                 odds_list += [odds]
         kaime_df = pd.DataFrame(
-            data={"競走コード": 競走コード_list, "馬番": umaban_list, "オッズ": odds_list},
+            data={"競走コード": race_key_list, "馬番": umaban_list, "オッズ": odds_list},
             columns=["競走コード","馬番","オッズ"]
         )
         kaime_df = kaime_df[kaime_df["オッズ"] != 0]
@@ -443,7 +392,7 @@ class Simulation(object):
         df2_gp = df2.groupby("競走コード")["馬番"].apply(list)
         merge_df = pd.merge(df1_gp, df2_gp, on="競走コード")
         merge_df = pd.merge(merge_df, odds_df, on="競走コード")
-        競走コード_list = []
+        race_key_list = []
         umaban_list = []
         check_umaban_list = []
         uma1_list = []
@@ -455,7 +404,7 @@ class Simulation(object):
             for element in itertools.product(uma1, uma2):
                 if element[0] != element[1]:
                     odds = row["odds"][element[0]][element[1]]
-                    競走コード_list += [row["競走コード"]]
+                    race_key_list += [row["競走コード"]]
                     if ren:
                         umaban_list += [sorted(element)] # 連系なのでソート
                         check_umaban_list += [str(sorted(element))]
@@ -466,7 +415,7 @@ class Simulation(object):
                     uma2_list += [element[1]]
                     odds_list += [odds]
         kaime_df = pd.DataFrame(
-            data={"競走コード": 競走コード_list, "馬番": umaban_list,  "チェック馬番": check_umaban_list, "オッズ": odds_list, "馬番1": uma1_list, "馬番2": uma2_list},
+            data={"競走コード": race_key_list, "馬番": umaban_list,  "チェック馬番": check_umaban_list, "オッズ": odds_list, "馬番1": uma1_list, "馬番2": uma2_list},
             columns=["競走コード","馬番","チェック馬番", "オッズ", "馬番1", "馬番2"]
         )
         kaime_df = kaime_df[kaime_df["オッズ"] != 0]
@@ -483,7 +432,7 @@ class Simulation(object):
         merge_df = pd.merge(df1_gp, df2_gp, on="競走コード")
         merge_df = pd.merge(merge_df, df3_gp, on="競走コード")
         merge_df = pd.merge(merge_df, odds_df, on="競走コード")
-        競走コード_list = []
+        race_key_list = []
         umaban_list = []
         check_umaban_list = []
         uma1_list = []
@@ -497,7 +446,7 @@ class Simulation(object):
             for element in itertools.product(uma1, uma2, uma3):
                 if not(element[0] == element[1] or element[0] == element[2] or element[1] == element[2]):
                     odds = row["odds"][element[0]][element[1]][element[2]]
-                    競走コード_list += [row["競走コード"]]
+                    race_key_list += [row["競走コード"]]
                     if ren:
                         umaban_list += [sorted(element)] # 連系なのでソート
                         check_umaban_list += [str(sorted(element))]
@@ -509,7 +458,7 @@ class Simulation(object):
                     uma3_list += [element[2]]
                     odds_list += [odds]
         kaime_df = pd.DataFrame(
-            data={"競走コード": 競走コード_list, "馬番": umaban_list, "チェック馬番": check_umaban_list, "オッズ": odds_list, "馬番1": uma1_list, "馬番2": uma2_list, "馬番3": uma3_list},
+            data={"競走コード": race_key_list, "馬番": umaban_list, "チェック馬番": check_umaban_list, "オッズ": odds_list, "馬番1": uma1_list, "馬番2": uma2_list, "馬番3": uma3_list},
             columns=["競走コード", "馬番", "チェック馬番", "オッズ", "馬番1", "馬番2", "馬番3"]
         )
         kaime_df = kaime_df[kaime_df["オッズ"] != 0]

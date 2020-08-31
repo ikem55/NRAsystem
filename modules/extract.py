@@ -284,6 +284,24 @@ class Extract(object):
                 {'式別': object, 'レース種別': object, 'PAT_ID': object, '投票方法': object})
         return df
 
+
+    def get_vbet_table_base(self):
+        """ 投票記録テーブルからデータを取得する。mock_flagがTrueの時はmockデータを取得する。
+
+        :return: dataframe
+        """
+        if self.mock_flag:
+            df = pd.read_pickle(self.mock_path_bet)
+        else:
+            cnxn = self._connect_baoz_mdb()
+            select_sql = 'SELECT * FROM 仮想投票記録T WHERE 日付 >= #' + \
+                self.start_date + '# AND 日付 <= #' + self.end_date + '#'
+            df_org = pd.read_sql(select_sql, cnxn)
+            cnxn.close()
+            df = df_org.astype(
+                {'式別': object, 'レース種別': object})
+        return df
+
     def get_zandaka_table_base(self):
         """ 残高テーブルからデータを取得する。mock_flagがTrueの時はmockデータを取得する。
 
