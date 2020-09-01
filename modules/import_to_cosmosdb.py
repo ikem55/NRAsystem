@@ -23,10 +23,10 @@ class Import_to_CosmosDB(object):
         self.raceuma_dict = {"データ区分": "DC", "競走コード": "RK", "馬番": "UM", "年月日": "target_date", "予想タイム指数順位": "RT",
                              "単勝配当": "TAN", "複勝配当": "FKU", "単勝人気": "TN", "単勝オッズ": "TO", "予想人気": "YN",
                              "異常区分コード": "IC", "確定着順": "CK", "デフォルト得点順位": "RD", "WIN_RATE": "WR",
-                             "JIKU_RATE": "JR", "ANA_RATE": "AR", "WIN_RANK": "WO", "JIKU_RANK": "WO", "ANA_RANK": "AO",
+                             "JIKU_RATE": "JR", "ANA_RATE": "AR", "WIN_RANK": "WO", "JIKU_RANK": "JO", "ANA_RANK": "AO",
                              "SCORE": "SC", "SCORE_RANK": "SR", "WIN_SCORE": "WS", "JIKU_SCORE": "JS", "ANA_SCORE": "AS"}
-        self.bet_df = {"競走コード": "RK", "式別": "S", "結果": "K", "金額": "M", "馬番": "UB", "月日": "target_date",}
-        self.haraimodoshi_df = {"競走コード": "RK", "馬番": "UB", "払戻": "H", "月日": "target_date",}
+        self.bet_df = {"競走コード": "RK", "式別": "S", "結果": "K", "金額": "M", "馬番": "UB", "月日": "target_date"}
+        self.haraimodoshi_df = {"競走コード": "RK", "馬番": "UB", "払戻": "H", "月日": "target_date"}
 
     def upsert_df(self, df):
         # https://docs.microsoft.com/ja-jp/python/api/azure-cosmos/azure.cosmos.containerproxy?view=azure-python#read-item-item--partition-key--populate-query-metrics-none--post-trigger-include-none----kwargs-
@@ -35,7 +35,7 @@ class Import_to_CosmosDB(object):
             #print(dict)
             self.container.upsert_item(dict)
 
-    def get_data(self, type, target_date):
+    def get_data(self, type):
         query = f"SELECT * from c WHERE c.type = '{type}' and c.target_date >= '{self.start_date}' and c.target_date <= '{self.end_date}'"
         items = list(self.container.query_items(query=query, enable_cross_partition_query=True))
         dflist = []
