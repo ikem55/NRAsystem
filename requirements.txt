@@ -64,7 +64,7 @@ factor-analyzer==0.3.2
 featuretools==0.13.2
 flake8==3.7.9
 flake8-polyfill==1.0.2
-Flask==0.12.5
+Flask==1.0
 Flask-AppBuilder==1.10.0
 Flask-Babel==0.11.1
 Flask-Caching==1.4.0
