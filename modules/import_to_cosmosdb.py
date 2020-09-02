@@ -59,10 +59,10 @@ class Import_to_CosmosDB(object):
 
     def import_predict_data(self):
         race_df = self.ext.get_race_table_base()#.query("データ区分 == '7'").copy()
-        date_df = race_df[["競走コード", "月日"]].copy()
         if not race_df.empty:
             race_df = race_df[["競走コード", "月日", "距離", "競走番号", "場名", "発走時刻", "データ区分"]]
             race_df.loc[:, "月日"] = race_df["月日"].apply(lambda x: x.strftime('%Y/%m/%d'))
+            date_df = race_df[["競走コード", "月日"]].copy()
             race_df.loc[:, "発走時刻"] = race_df["発走時刻"].apply(lambda x: x.strftime('%H:%M'))
             race_df.loc[:, "type"] = "race"
             race_df.loc[:, "id"] = race_df["競走コード"].astype("str")
