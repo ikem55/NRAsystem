@@ -11,6 +11,8 @@ import modules.util as mu
 class Import_to_CosmosDB(object):
     def __init__(self, start_date, end_date, test_flag):
         self.target_date = end_date
+        self.start_date = start_date
+        self.end_date = end_date
         self.config = mc.return_cosmos_info(test_flag)
         self.client = cosmos_client.CosmosClient(url = self.config["ENDPOINT"],
                                                  credential={'masterKey': self.config["PRIMARYKEY"]})
@@ -25,8 +27,8 @@ class Import_to_CosmosDB(object):
                              "異常区分コード": "IC", "確定着順": "CK", "デフォルト得点順位": "RD", "WIN_RATE": "WR",
                              "JIKU_RATE": "JR", "ANA_RATE": "AR", "WIN_RANK": "WO", "JIKU_RANK": "JO", "ANA_RANK": "AO",
                              "SCORE": "SC", "SCORE_RANK": "SR", "WIN_SCORE": "WS", "JIKU_SCORE": "JS", "ANA_SCORE": "AS"}
-        self.bet_df = {"競走コード": "RK", "式別": "S", "結果": "K", "金額": "M", "馬番": "UB", "月日": "target_date"}
-        self.haraimodoshi_df = {"競走コード": "RK", "馬番": "UB", "払戻": "H", "月日": "target_date"}
+        self.bet_dict = {"競走コード": "RK", "式別": "S", "結果": "K", "金額": "M", "馬番": "UB", "月日": "target_date"}
+        self.haraimodoshi_dict = {"競走コード": "RK", "馬番": "UB", "払戻": "H", "月日": "target_date"}
 
     def upsert_df(self, df):
         # https://docs.microsoft.com/ja-jp/python/api/azure-cosmos/azure.cosmos.containerproxy?view=azure-python#read-item-item--partition-key--populate-query-metrics-none--post-trigger-include-none----kwargs-
@@ -47,28 +49,28 @@ class Import_to_CosmosDB(object):
         return df
 
     def _decode_columns(self, type):
-        if type == "race": columns = self.raceuma_dict
+        if type == "race": columns = self.race_dict
         elif type == "raceuma": columns =self.raceuma_dict
-        elif type in ["単勝", "複勝", "馬連", "馬単", "ワイド", "三連複"]: columns =self.haraimodoshi_df
-        elif type in ["馬券 ", "仮想"]: columns = self.bet_df
+        elif type in ["単勝", "複勝", "馬連", "馬単", "ワイド", "３連複"]: columns =self.haraimodoshi_dict
+        elif type in ["馬券 ", "仮想"]: columns = self.bet_dict
         else: columns = {}
         d_swap = {v: k for k, v in columns.items()}
         return d_swap
 
     def import_predict_data(self):
-        race_df = self.ext.get_race_table_base().query("データ区分 == '7'").copy()
+        race_df = self.ext.get_race_table_base()#.query("データ区分 == '7'").copy()
+        date_df = race_df[["競走コード", "月日"]].copy()
         if not race_df.empty:
             race_df = race_df[["競走コード", "月日", "距離", "競走番号", "場名", "発走時刻", "データ区分"]]
             race_df.loc[:, "月日"] = race_df["月日"].apply(lambda x: x.strftime('%Y/%m/%d'))
             race_df.loc[:, "発走時刻"] = race_df["発走時刻"].apply(lambda x: x.strftime('%H:%M'))
             race_df.loc[:, "type"] = "race"
             race_df.loc[:, "id"] = race_df["競走コード"].astype("str")
-            date_df = race_df[["競走コード", "月日"]].copy()
             race_df.rename(columns=self.race_dict, inplace=True)
             print(race_df.shape)
             self.upsert_df(race_df)
 
-        raceuma_df = self.ext.get_raceuma_table_base().query("データ区分 == '7'").copy().fillna(0)
+        raceuma_df = self.ext.get_raceuma_table_base()#.query("データ区分 == '7'").copy().fillna(0)
         if not raceuma_df.empty:
             raceuma_df = raceuma_df[["データ区分", "競走コード", "馬番", "年月日", "予想タイム指数順位", "単勝配当", "複勝配当", "単勝人気", "単勝オッズ",
                                      "予想人気" , "異常区分コード", "確定着順", "デフォルト得点順位", "WIN_RATE", "JIKU_RATE",
@@ -89,7 +91,7 @@ class Import_to_CosmosDB(object):
             tansho_df = pd.merge(tansho_df, date_df, on ="競走コード")
             tansho_df.loc[:, "type"] = "単勝"
             tansho_df.loc[:, "id"] = "T" + tansho_df["競走コード"].astype("str") + tansho_df["馬番"].astype("str")
-            tansho_df.rename(columns=self.haraimodoshi_df, inplace=True)
+            tansho_df.rename(columns=self.haraimodoshi_dict, inplace=True)
             print(tansho_df.shape)
             self.upsert_df(tansho_df)
 
@@ -98,7 +100,7 @@ class Import_to_CosmosDB(object):
             fukusho_df = pd.merge(fukusho_df, date_df, on ="競走コード")
             fukusho_df.loc[:, "type"] = "複勝"
             fukusho_df.loc[:, "id"] = "F" + fukusho_df["競走コード"].astype("str") + fukusho_df["馬番"].astype("str")
-            fukusho_df.rename(columns=self.haraimodoshi_df, inplace=True)
+            fukusho_df.rename(columns=self.haraimodoshi_dict, inplace=True)
             print(fukusho_df.shape)
             self.upsert_df(fukusho_df)
 
@@ -109,7 +111,7 @@ class Import_to_CosmosDB(object):
             umaren_df.loc[:, "index"] = umaren_df["馬番"].apply(lambda x: "_".join(map(str, x)))
             umaren_df.loc[:, "id"] = "UR" + umaren_df["競走コード"].astype("str") + umaren_df["index"].astype("str")
             umaren_df.drop("index", axis=1, inplace=True)
-            umaren_df.rename(columns=self.haraimodoshi_df, inplace=True)
+            umaren_df.rename(columns=self.haraimodoshi_dict, inplace=True)
             print(umaren_df.shape)
             self.upsert_df(umaren_df)
 
@@ -120,7 +122,7 @@ class Import_to_CosmosDB(object):
             umatan_df.loc[:, "index"] = umatan_df["馬番"].apply(lambda x: "_".join(map(str, x)))
             umatan_df.loc[:, "id"] = "UT" + umatan_df["競走コード"].astype("str") + umatan_df["index"].astype("str")
             umatan_df.drop("index", axis=1, inplace=True)
-            umatan_df.rename(columns=self.haraimodoshi_df, inplace=True)
+            umatan_df.rename(columns=self.haraimodoshi_dict, inplace=True)
             print(umatan_df.shape)
             self.upsert_df(umatan_df)
 
@@ -131,7 +133,7 @@ class Import_to_CosmosDB(object):
             wide_df.loc[:, "index"] = wide_df["馬番"].apply(lambda x: "_".join(map(str, x)))
             wide_df.loc[:, "id"] = "W" + wide_df["競走コード"].astype("str") + wide_df["index"].astype("str")
             wide_df.drop("index", axis=1, inplace=True)
-            wide_df.rename(columns=self.haraimodoshi_df, inplace=True)
+            wide_df.rename(columns=self.haraimodoshi_dict, inplace=True)
             print(wide_df.shape)
             self.upsert_df(wide_df)
 
@@ -142,7 +144,7 @@ class Import_to_CosmosDB(object):
             sanrenpuku_df.loc[:, "index"] = sanrenpuku_df["馬番"].apply(lambda x: "_".join(map(str, x)))
             sanrenpuku_df.loc[:, "id"] = "S" + sanrenpuku_df["競走コード"].astype("str") + sanrenpuku_df["index"].astype("str")
             sanrenpuku_df.drop("index", axis=1, inplace=True)
-            sanrenpuku_df.rename(columns=self.haraimodoshi_df, inplace=True)
+            sanrenpuku_df.rename(columns=self.haraimodoshi_dict, inplace=True)
             print(sanrenpuku_df.shape)
             self.upsert_df(sanrenpuku_df)
 
@@ -157,7 +159,7 @@ class Import_to_CosmosDB(object):
             bet_df.loc[:, "type"] = "馬券"
             bet_df = pd.merge(bet_df, date_df, on ="競走コード")
             bet_df = bet_df[["id", "競走コード", "式別", "月日", "結果", "金額", "type", "馬番"]]
-            bet_df.rename(columns=self.bet_df, inplace=True)
+            bet_df.rename(columns=self.bet_dict, inplace=True)
             print(bet_df.shape)
             self.upsert_df(bet_df)
 
@@ -172,6 +174,6 @@ class Import_to_CosmosDB(object):
             vbet_df.loc[:, "type"] = "仮想"
             vbet_df = pd.merge(vbet_df, date_df, on ="競走コード")
             vbet_df = vbet_df[["id", "競走コード", "式別", "月日", "結果", "金額", "type", "馬番"]]
-            vbet_df.rename(columns=self.bet_df, inplace=True)
+            vbet_df.rename(columns=self.bet_dict, inplace=True)
             print(vbet_df.shape)
             self.upsert_df(vbet_df)
