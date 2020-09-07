@@ -33,7 +33,7 @@ class Import_to_CosmosDB(object):
         # https://docs.microsoft.com/ja-jp/python/api/azure-cosmos/azure.cosmos.containerproxy?view=azure-python#read-item-item--partition-key--populate-query-metrics-none--post-trigger-include-none----kwargs-
         for index, row in df.iterrows():
             dict = row.to_dict()
-            print(dict)
+            #print(dict)
             self.container.upsert_item(dict)
 
     def get_data(self, type):
@@ -154,8 +154,8 @@ class Import_to_CosmosDB(object):
             bet_df.loc[:, "index"] = bet_df["番号"].apply(lambda x: str(x).zfill(6))
             bet_df.loc[:, "馬番"] = bet_df["番号"].apply(lambda x: x if x <= 20 else mu.separate_umaban(x))
             bet_df.loc[:, "結果"] = bet_df["結果"] * bet_df["金額"] / 100
+            bet_df.loc[:, "id"] = "B" + bet_df["式別"].astype("str") + bet_df["競走コード"].astype("str").str[0:11] + bet_df["index"].astype("str")
             bet_df.loc[:, "式別"] = bet_df["式別"].apply(lambda x: mu.trans_baken_type(x))
-            bet_df.loc[:, "id"] = "B" + bet_df["競走コード"].astype("str").str[0:11] + bet_df["index"].astype("str")
             bet_df.loc[:, "type"] = "馬券"
             bet_df = pd.merge(bet_df, date_df, on ="競走コード")
             bet_df = bet_df[["id", "競走コード", "式別", "月日", "結果", "金額", "type", "馬番"]]
@@ -169,8 +169,8 @@ class Import_to_CosmosDB(object):
             vbet_df.loc[:, "index"] = vbet_df["番号"].apply(lambda x: str(x).zfill(6))
             vbet_df.loc[:, "馬番"] = vbet_df["番号"].apply(lambda x: x if x <= 20 else mu.separate_umaban(x))
             vbet_df.loc[:, "結果"] = vbet_df["結果"] * vbet_df["金額"] / 100
+            vbet_df.loc[:, "id"] = "V" + vbet_df["式別"].astype("str") + vbet_df["競走コード"].astype("str").str[0:11] + vbet_df["index"].astype("str")
             vbet_df.loc[:, "式別"] = vbet_df["式別"].apply(lambda x: mu.trans_baken_type(x))
-            vbet_df.loc[:, "id"] = "V" + vbet_df["競走コード"].astype("str").str[0:11] + vbet_df["index"].astype("str")
             vbet_df.loc[:, "type"] = "仮想"
             vbet_df = pd.merge(vbet_df, date_df, on ="競走コード")
             vbet_df = vbet_df[["id", "競走コード", "式別", "月日", "結果", "金額", "type", "馬番"]]
