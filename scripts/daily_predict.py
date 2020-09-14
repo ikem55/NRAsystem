@@ -17,7 +17,7 @@ if __name__ == "__main__":
     else:
         base_start_date = '2020/01/01'
         start_date = SkProc.get_recent_day(base_start_date)
-        end_date = (dt.now() + timedelta(days=0)).strftime('%Y/%m/%d')
+        end_date = (dt.now() + timedelta(days=1)).strftime('%Y/%m/%d')
         ## 過去データがうまく作成できない場合はMDBのレコードを削除する必要がある。
         if start_date > end_date:
             start_date = end_date
