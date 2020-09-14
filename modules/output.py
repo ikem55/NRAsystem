@@ -15,7 +15,7 @@ class Output(object):
 
     def post_slack_text(self, post_text):
         slack = slackweb.Slack(url=self.slack_operation_url)
-        # slack.notify(text=post_text)
+        slack.notify(text=post_text)
 
     def post_slack_real(self, post_text):
         slack = slackweb.Slack(url=self.slack_realtime_url)
