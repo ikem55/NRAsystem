@@ -184,7 +184,7 @@ protobuf==3.11.3
 psutil==5.6.7
 PuLP==2.0
 pure-sasl==0.5.1
-py==1.8.1
+py==1.10.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycodestyle==2.5.0
